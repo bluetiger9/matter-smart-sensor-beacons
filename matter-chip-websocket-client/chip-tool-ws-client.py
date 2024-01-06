@@ -55,7 +55,7 @@ class WebSocket:
             await self.receive_task
 
 # main function (async)
-async def main(chip_tool_ws_url, influx_db_url, node_id, endpoint_id, cluster_name, metric, divide):
+async def main(chip_tool_ws_url, influx_db_url, node_id, endpoint_id, cluster_name, attribute_name, metric, divide, count):
     # Influx DB connection
     influx = InfluxDBClient(influx_db_url, token=os.environ.get('INFLUX_TOKEN'), org="none")
     influx_write = influx.write_api(write_options=SYNCHRONOUS)
@@ -81,8 +81,8 @@ async def main(chip_tool_ws_url, influx_db_url, node_id, endpoint_id, cluster_na
     await ws.connect()
 
     # main loop (async)
-    while True:
-        message_to_send = f"{cluster_name} read measured-value {node_id} {endpoint_id} --timeout 2"
+    for nr in range(0, count):
+        message_to_send = f"{cluster_name} read {attribute_name} {node_id} {endpoint_id} --timeout 2"
         await ws.send(message_to_send)
 
         # Perform more actions if needed
@@ -102,12 +102,14 @@ if __name__ == "__main__":
     parser.add_argument("--node-id", help="Matter Node ID", type=str, default="1")
     parser.add_argument("--endpoint-id", help="Matter Endpoint ID", type=str, default="1")
     parser.add_argument("--cluster-name", help="Matter Cluster Name", type=str, default="temperaturemeasurement")
+    parser.add_argument("--attribute-name", help="Matter Attribute Name", type=str, default="measured-value")
     parser.add_argument("--metric", help="InfluxDB Metric Name", type=str, default="temperature")
     parser.add_argument("--divide", help="Divide int value to get a float", type=float, default="1.0")
+    parser.add_argument("--count", help="Number of samples to collect", type=int, default="1")
 
     args = parser.parse_args()
     
     print(f"Parser: {args}")
 
     # run the AsyncIO event loop
-    asyncio.get_event_loop().run_until_complete(main(args.chip_tool_ws_url, args.influx_db_url, args.node_id, args.endpoint_id, args.cluster_name, args.metric, args.divide))
+    asyncio.get_event_loop().run_until_complete(main(args.chip_tool_ws_url, args.influx_db_url, args.node_id, args.endpoint_id, args.cluster_name, args.attribute_name, args.metric, args.divide, args.count))
